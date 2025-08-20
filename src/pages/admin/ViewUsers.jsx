@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from "react";
 import AdminLayouts from "../../layout/AdminLayouts";
-import { API_BASE_URL } from "../../config";
-import axios from "axios";
-import toast from "react-hot-toast";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchUsers,
+  createUser,
+  deleteUser,
+  updateUser,
+} from "../../context/userSlice"; // Use your slice actions
 import Button from "../../components/ui/Button";
+import toast from "react-hot-toast";
 
 function ViewUsers() {
-  const [users, setUsers] = useState([]);
+  const dispatch = useDispatch();
+  const { users, loading, error } = useSelector((state) => state.users);
+
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState("all");
@@ -14,28 +21,12 @@ function ViewUsers() {
   const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
   const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
 
-  // 🔹 Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 5;
+  // Fetch users on mount
+  useEffect(() => {
+    dispatch(fetchUsers());
+  }, [dispatch]);
 
-  // Fetch all users
-  const handleUsers = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/users/getAllUser`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      setUsers(res.data.users);
-      setFilteredUsers(res.data.users);
-    } catch (error) {
-      toast.error("Failed to fetch users");
-      console.error(error);
-    }
-  };
-
-  // Filter users based on search and role
+  // Filter users by search and role
   useEffect(() => {
     let temp = [...users];
 
@@ -52,75 +43,47 @@ function ViewUsers() {
     }
 
     setFilteredUsers(temp);
-    setCurrentPage(1); // reset to first page when filters change
-  }, [searchQuery, filterRole, users]);
+  }, [users, searchQuery, filterRole]);
 
-  // Pagination logic
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
 
-  const handlePageChange = (page) => {
-    if (page > 0 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
-  // Open edit popup
+  // Edit
   const handleEdit = (user) => {
     setSelectedUser({ ...user });
     setIsEditPopupOpen(true);
   };
 
-  // Save edited user
   const handleSaveEdit = async () => {
     try {
-      await axios.put(
-        `${API_BASE_URL}/users/edit/${selectedUser._id}`,
-        selectedUser,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      await dispatch(
+        updateUser({ id: selectedUser._id, userData: selectedUser })
+      ).unwrap();
       toast.success("User updated successfully");
       setIsEditPopupOpen(false);
-      handleUsers();
-    } catch (error) {
-      toast.error("Failed to update user");
-      console.error(error);
+      dispatch(fetchUsers());
+    } catch (err) {
+      toast.error(err || "Failed to update user");
     }
   };
 
-  // Open delete popup
+  // Delete
   const handleDelete = (user) => {
     setSelectedUser(user);
     setIsDeletePopupOpen(true);
   };
 
-  // Confirm delete
   const confirmDelete = async () => {
     try {
-      await axios.delete(`${API_BASE_URL}/users/delete/${selectedUser._id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      await dispatch(deleteUser(selectedUser._id)).unwrap();
       toast.success("User deleted successfully");
       setIsDeletePopupOpen(false);
-      handleUsers();
-    } catch (error) {
-      toast.error("Failed to delete user");
-      console.error(error);
+      dispatch(fetchUsers());
+    } catch (err) {
+      toast.error(err?.message || err?.payload || "Failed to delete user");
     }
   };
-
-  useEffect(() => {
-    handleUsers();
-  }, []);
 
   return (
     <AdminLayouts>
@@ -132,7 +95,7 @@ function ViewUsers() {
           </span>
         </div>
 
-        {/* Search + Filter */}
+        {/* Search + Role Filter */}
         <div className="flex gap-3 mb-6">
           <input
             type="text"
@@ -154,126 +117,51 @@ function ViewUsers() {
         </div>
 
         {/* User List */}
-        <div className="grid grid-cols-1 gap-4">
-          {currentUsers.map((user) => (
-            <div
-              key={user._id}
-              className="flex justify-between items-center p-4 bg-white shadow rounded-lg"
-            >
-              <div>
-                <p className="font-semibold">{user.profile?.name}</p>
-                <p className="text-gray-500 text-sm">{user.email}</p>
-                <p className="text-sm text-gray-700">
-                  Role: <span className="font-medium">{user.role}</span>
-                </p>
-              </div>
-              <div className="space-x-3">
-                <Button onClick={() => handleEdit(user)} variant="secondary">
-                  Edit
-                </Button>
-                <Button onClick={() => handleDelete(user)} variant="danger">
-                  Delete
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center mt-6 gap-2">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              className="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300"
-              disabled={currentPage === 1}
-            >
-              Prev
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i + 1}
-                onClick={() => handlePageChange(i + 1)}
-                className={`px-3 py-1 rounded-lg ${
-                  currentPage === i + 1
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 hover:bg-gray-300"
-                }`}
+        {loading ? (
+          <p>Loading users...</p>
+        ) : filteredUsers.length === 0 ? (
+          <p>No users found.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {filteredUsers.map((user) => (
+              <div
+                key={user._id}
+                className="flex justify-between items-center p-4 bg-white shadow rounded-lg"
               >
-                {i + 1}
-              </button>
+                <div>
+                  <p className="font-semibold">{user.profile?.name}</p>
+                  <p className="text-gray-500 text-sm">{user.email}</p>
+                  <p className="text-sm text-gray-700">
+                    Role: <span className="font-medium">{user.role}</span>
+                  </p>
+                  {user.profile?.licenseNumber && (
+                    <p className="text-sm text-gray-700">
+                      License: {user.profile.licenseNumber}
+                    </p>
+                  )}
+                </div>
+                <div className="space-x-3">
+                  <Button onClick={() => handleEdit(user)} variant="secondary">
+                    Edit
+                  </Button>
+                  <Button onClick={() => handleDelete(user)} variant="danger">
+                    Delete
+                  </Button>
+                </div>
+              </div>
             ))}
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              className="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300"
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </button>
           </div>
         )}
       </div>
 
-      {/* ✅ Edit Popup (unchanged) */}
+      {/* Edit Popup */}
       {isEditPopupOpen && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-8 rounded-2xl shadow-2xl w-[650px] max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
               ✏️ Edit User
             </h2>
-
-            {/* Form Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Username */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  value={selectedUser.username || ""}
-                  onChange={(e) =>
-                    setSelectedUser({
-                      ...selectedUser,
-                      username: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Enter username"
-                />
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={selectedUser.email || ""}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, email: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Enter email"
-                />
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  Phone
-                </label>
-                <input
-                  type="text"
-                  value={selectedUser.phone || ""}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, phone: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Enter phone number"
-                />
-              </div>
-
               {/* Full Name */}
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-1">
@@ -296,69 +184,19 @@ function ViewUsers() {
                 />
               </div>
 
-              {/* Address */}
-              <div className="col-span-2">
-                <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  Address
-                </label>
-                <input
-                  type="text"
-                  value={selectedUser.profile?.address || ""}
-                  onChange={(e) =>
-                    setSelectedUser({
-                      ...selectedUser,
-                      profile: {
-                        ...selectedUser.profile,
-                        address: e.target.value,
-                      },
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Enter address"
-                />
-              </div>
-
-              {/* License Number */}
+              {/* Email */}
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  License Number
+                  Email
                 </label>
                 <input
-                  type="text"
-                  value={selectedUser.profile?.licenseNumber || ""}
+                  type="email"
+                  value={selectedUser.email || ""}
                   onChange={(e) =>
-                    setSelectedUser({
-                      ...selectedUser,
-                      profile: {
-                        ...selectedUser.profile,
-                        licenseNumber: e.target.value,
-                      },
-                    })
+                    setSelectedUser({ ...selectedUser, email: e.target.value })
                   }
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Enter license number"
-                />
-              </div>
-
-              {/* Emergency Contact */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  Emergency Contact
-                </label>
-                <input
-                  type="text"
-                  value={selectedUser.profile?.emergencyContact || ""}
-                  onChange={(e) =>
-                    setSelectedUser({
-                      ...selectedUser,
-                      profile: {
-                        ...selectedUser.profile,
-                        emergencyContact: e.target.value,
-                      },
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Enter emergency contact"
+                  placeholder="Enter email"
                 />
               </div>
 
@@ -398,16 +236,14 @@ function ViewUsers() {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex justify-end gap-4 mt-8">
               <Button
                 onClick={() => setIsEditPopupOpen(false)}
                 variant="outline"
-                size="md"
               >
                 Cancel
               </Button>
-              <Button variant="success" size="md" onClick={handleSaveEdit}>
+              <Button variant="success" onClick={handleSaveEdit}>
                 💾 Save
               </Button>
             </div>
@@ -415,7 +251,7 @@ function ViewUsers() {
         </div>
       )}
 
-      {/* ✅ Delete Popup (unchanged) */}
+      {/* Delete Popup */}
       {isDeletePopupOpen && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-xl w-[350px] text-center">

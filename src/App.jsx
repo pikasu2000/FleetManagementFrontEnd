@@ -7,6 +7,9 @@ import AddDriver from "./pages/admin/AddDriver";
 import { Toaster } from "react-hot-toast";
 import Login from "./pages/auth/Login";
 import ViewUsers from "./pages/admin/ViewUsers";
+import AddVehicle from "./pages/admin/AddVehicle";
+import ViewVehicle from "./pages/admin/VeiwVehicle";
+import AddTrip from "./pages/AddTrip";
 
 function App() {
   return (
@@ -15,10 +18,15 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
 
+        <Route path="/add-trip" element={<AddTrip />} />
+
         {/* Admin Routes */}
         <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/add-driver" element={<AddDriver />} />
         <Route path="/admin/view-users" element={<ViewUsers />} />
+        <Route path="/admin/add-vehicle" element={<AddVehicle />} />
+        <Route path="/admin/view-vehicles" element={<ViewVehicle />} />
+        {/* Add more admin routes as needed */}
       </Routes>
 
       <Toaster

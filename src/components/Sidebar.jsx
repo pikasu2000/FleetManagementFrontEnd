@@ -13,9 +13,9 @@ import {
 import { FaHome } from "react-icons/fa";
 import toast from "react-hot-toast";
 
-function Sidebar() {
+function Sidebar({ isOpen, setIsOpen }) {
+  const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(true);
 
   const logouthandle = () => {
     localStorage.removeItem("user");
@@ -50,8 +50,8 @@ function Sidebar() {
         />
         {isOpen && (
           <>
-            <h2 className="text-lg font-bold mt-2">Admin</h2>
-            <p className="text-gray-400 text-sm">admin@example.com</p>
+            <h2 className="text-lg font-bold mt-2">{user.name}</h2>
+            <p className="text-gray-400 text-sm">{user.email}</p>
           </>
         )}
       </div>
@@ -111,6 +111,91 @@ function Sidebar() {
           </NavLink>
         </div>
 
+        {/* --- Vehicle Management --- */}
+        <div>
+          {isOpen && (
+            <p className="text-gray-400 uppercase text-xs px-4 mb-2">
+              Vehicle Management
+            </p>
+          )}
+          <NavLink
+            to="/admin/add-vehicle"
+            className={({ isActive }) =>
+              `${linkClass} ${
+                isActive
+                  ? "bg-[#ffe6c9] text-black shadow-md"
+                  : "hover:bg-gray-700 hover:scale-[1.05]"
+              }`
+            }
+          >
+            <LuBookPlus size={18} /> {isOpen && "Add Vehicle"}
+          </NavLink>
+
+          <NavLink
+            to="/admin/view-vehicles"
+            className={({ isActive }) =>
+              `${linkClass} ${
+                isActive
+                  ? "bg-[#ffe6c9] text-black shadow-md"
+                  : "hover:bg-gray-700 hover:scale-[1.05]"
+              }`
+            }
+          >
+            <LuSignpost size={18} /> {isOpen && "View Vehicles"}
+          </NavLink>
+        </div>
+
+        {/* --- Trip Management --- */}
+        <div>
+          {isOpen && (
+            <p className="text-gray-400 uppercase text-xs px-4 mb-2">
+              Trip Management
+            </p>
+          )}
+          <NavLink
+            to="/add-trip"
+            className={({ isActive }) =>
+              `${linkClass} ${
+                isActive
+                  ? "bg-[#ffe6c9] text-black shadow-md"
+                  : "hover:bg-gray-700 hover:scale-[1.05]"
+              }`
+            }
+          >
+            <LuBookPlus size={18} /> {isOpen && "Add Trip"}
+          </NavLink>
+
+          <NavLink
+            to="/admin/view-trips"
+            className={({ isActive }) =>
+              `${linkClass} ${
+                isActive
+                  ? "bg-[#ffe6c9] text-black shadow-md"
+                  : "hover:bg-gray-700 hover:scale-[1.05]"
+              }`
+            }
+          >
+            <LuSignpost size={18} /> {isOpen && "View Trips"}
+          </NavLink>
+        </div>
+        {/* --- Reports --- */}
+        <div>
+          {isOpen && (
+            <p className="text-gray-400 uppercase text-xs px-4 mb-2">Reports</p>
+          )}
+          <NavLink
+            to="/admin/view-reports"
+            className={({ isActive }) =>
+              `${linkClass} ${
+                isActive
+                  ? "bg-[#ffe6c9] text-black shadow-md"
+                  : "hover:bg-gray-700 hover:scale-[1.05]"
+              }`
+            }
+          >
+            <LuSignpost size={18} /> {isOpen && "View Reports"}
+          </NavLink>
+        </div>
         {/* --- Reports --- */}
         <div>
           {isOpen && (
