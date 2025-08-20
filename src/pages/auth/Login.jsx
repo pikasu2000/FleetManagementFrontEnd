@@ -22,10 +22,14 @@ function Login() {
     });
     let res = await data.json();
     console.log("User logged in:", res);
-    if (res.token) {
+    if (res.success) {
       localStorage.setItem("user", JSON.stringify(res.user));
       localStorage.setItem("token", res.token);
-      navigate("/");
+      if (res.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/");
+      }
     } else {
       alert(res.message || "Login failed");
     }

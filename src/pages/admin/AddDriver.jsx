@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import AdminLayouts from "../../layout/AdminLayouts";
 import Button from "../../components/ui/Button";
 import { API_BASE_URL } from "../../config";
+import toast from "react-hot-toast";
+import axios from "axios";
 
 function AddDriver() {
   const [formData, setFormData] = useState({
@@ -9,7 +11,8 @@ function AddDriver() {
     phone: "",
     license: "",
     email: "",
-    position: "",
+    password: "",
+    role: "",
     address: "",
     emergencyContact: "",
   });
@@ -24,24 +27,42 @@ function AddDriver() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_BASE_URL}/users/create`, {
-        method: "POST",
+      const payload = {
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        password: formData.password || "default123",
+        role: formData.role,
+        address: formData.address,
+        licenseNumber: formData.license,
+        emergencyContact: formData.emergencyContact,
+      };
+
+      const res = await axios.post(`${API_BASE_URL}/users/create`, payload, {
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify(formData),
       });
-      if (res.ok) {
-        const data = await res.json();
-        console.log("Driver created successfully:", data);
+
+      if (res.data.success) {
+        toast.success("✅ Driver created successfully!");
+        setFormData({
+          name: "",
+          phone: "",
+          license: "",
+          email: "",
+          password: "",
+          role: "",
+          address: "",
+          emergencyContact: "",
+        });
       } else {
-        console.error("Error creating driver:", res.statusText);
+        toast.error("Error creating driver:", data.message || res.statusText);
       }
     } catch (error) {
-      console.error("Error creating driver:", error);
+      toast.error("Error creating driver:", error);
     }
-
-    console.log("Driver Data Submitted:", formData);
   };
 
   return (
@@ -107,13 +128,13 @@ function AddDriver() {
                 Position
               </label>
               <select
-                name="position"
-                value={formData.position}
+                name="role"
+                value={formData.role}
                 onChange={handleChange}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 required
               >
-                <option value="">Select Position</option>
+                <option value="">Select Role</option>
                 <option value="driver">Driver</option>
                 <option value="manager">Manager</option>
               </select>

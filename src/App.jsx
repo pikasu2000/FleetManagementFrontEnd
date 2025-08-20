@@ -6,6 +6,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import AddDriver from "./pages/admin/AddDriver";
 import { Toaster } from "react-hot-toast";
 import Login from "./pages/auth/Login";
+import ViewUsers from "./pages/admin/ViewUsers";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         {/* Admin Routes */}
         <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/add-driver" element={<AddDriver />} />
+        <Route path="/admin/view-users" element={<ViewUsers />} />
       </Routes>
 
       <Toaster

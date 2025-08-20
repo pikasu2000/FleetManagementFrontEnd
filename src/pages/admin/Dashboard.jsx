@@ -1,7 +1,5 @@
 import React from "react";
 import { Link } from "react-router-dom";
-
-import Sidebar from "../../components/Sidebar";
 import AdminLayouts from "../../layout/AdminLayouts";
 
 function Dashboard() {
