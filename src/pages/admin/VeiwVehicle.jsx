@@ -1,54 +1,58 @@
-import React, { useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import AdminLayouts from "../../layout/AdminLayouts";
 import { useDispatch, useSelector } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   fetchVehicles,
   deleteVehicle,
   editVehicle,
+  assignDriver,
 } from "../../context/vehicleSlice";
-import { fetchUsers } from "../../context/userSlice";
-import Button from "../../components/ui/Button";
+import Button from "../../components/ui/Buttons/Button";
 import toast from "react-hot-toast";
+import DeleteCard from "../../components/ui/Cards/DeleteCard";
 
 function ViewVehicle() {
   const dispatch = useDispatch();
   const { vehicles, loading, error } = useSelector((state) => state.vehicles);
-  const { users } = useSelector((state) => state.users);
 
   const [filteredVehicles, setFilteredVehicles] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDriver, setFilterDriver] = useState("all");
   const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
   const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState(null);
+  const currentUser = JSON.parse(localStorage.getItem("user"));
+
+  const [driverAssignment, setDriverAssignment] = useState({
+    vehicleId: null,
+    driverId: "",
+  });
+  const [isAssigning, setIsAssigning] = useState(false);
 
   useEffect(() => {
     dispatch(fetchVehicles());
-    if (!users.length) dispatch(fetchUsers());
-  }, [dispatch, users.length]);
+  }, [dispatch]);
 
   useEffect(() => {
     let temp = [...vehicles];
 
-    // Search filter
     if (searchQuery) {
       temp = temp.filter(
         (v) =>
-          v.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          v.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          v.licensePlate.toLowerCase().includes(searchQuery.toLowerCase())
+          v.make?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          v.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          v.licensePlate?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-    // Status filter
     if (filterStatus !== "all") {
       temp = temp.filter((v) => v.status === filterStatus);
     }
 
-    // Driver filter
     if (filterDriver !== "all") {
-      temp = temp.filter((v) => v.assignedDriver === filterDriver);
+      temp = temp.filter((v) => v.assignedDriver?._id === filterDriver);
     }
 
     setFilteredVehicles(temp);
@@ -58,28 +62,47 @@ function ViewVehicle() {
     if (error) toast.error(error);
   }, [error]);
 
-  const getDriverName = (driverId) => {
-    const driver = users.find((u) => u._id === driverId);
-    return driver?.profile?.name || driver?.username || "N/A";
-  };
-
   // === Edit ===
   const handleEdit = (vehicle) => {
-    setSelectedVehicle({ ...vehicle });
-    setIsEditPopupOpen(true);
+    setEditingVehicle({
+      ...vehicle,
+      assignedDriver: vehicle.assignedDriver?._id || "",
+    });
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = async (e) => {
+    e.preventDefault(); // Prevent default form behavior
     try {
+      const updatedData = {
+        make: editingVehicle.make,
+        model: editingVehicle.model,
+        year: editingVehicle.year,
+        licensePlate: editingVehicle.licensePlate,
+        mileage: editingVehicle.mileage,
+        status: editingVehicle.status,
+        assignedDriver: editingVehicle.assignedDriver || null,
+        location: editingVehicle.location || "",
+      };
+
       await dispatch(
-        editVehicle({ id: selectedVehicle._id, vehicleData: selectedVehicle })
+        editVehicle({ id: editingVehicle._id, data: updatedData })
       ).unwrap();
+
       toast.success("Vehicle updated successfully");
-      setIsEditPopupOpen(false);
-      dispatch(fetchVehicles());
+      setEditingVehicle(null);
     } catch (err) {
-      toast.error(err?.message || "Failed to update vehicle");
+      console.error("Edit error:", err);
+      const errorMsg = err?.message || err?.error || "Failed to update vehicle";
+      toast.error(errorMsg);
     }
+  };
+
+  const handleAssignDriver = (vehicle) => {
+    setDriverAssignment({
+      vehicleId: vehicle._id,
+      driverId: vehicle.assignedDriver?._id || "",
+    });
+    setIsAssigning(true);
   };
 
   // === Delete ===
@@ -93,49 +116,59 @@ function ViewVehicle() {
       await dispatch(deleteVehicle(selectedVehicle._id)).unwrap();
       toast.success("Vehicle deleted successfully");
       setIsDeletePopupOpen(false);
-      dispatch(fetchVehicles());
+      setSelectedVehicle(null);
     } catch (err) {
       toast.error(err?.message || "Failed to delete vehicle");
     }
   };
 
+  // === Unique Drivers List ===
+  const uniqueDrivers = [
+    ...new Map(
+      vehicles
+        .filter((v) => v.assignedDriver)
+        .map((v) => [v.assignedDriver._id, v.assignedDriver])
+    ).values(),
+  ];
+
   return (
     <AdminLayouts>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Vehicles List</h1>
+      <div className="p-6 bg-gray-100 min-h-screen">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Vehicles List</h1>
           <span className="text-gray-600 text-lg">
             Total Vehicles: <b>{filteredVehicles.length}</b>
           </span>
         </div>
 
         {/* Search + Filters */}
-        <div className="flex gap-3 mb-4 flex-wrap">
+        <div className="flex gap-4 mb-6 flex-wrap bg-white p-4 rounded-lg shadow-md">
           <input
             type="text"
             placeholder="Search by make, model, or license plate"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-3 py-2 border rounded-lg w-full sm:w-1/3"
+            className="px-4 py-2 border rounded-lg w-full sm:w-1/3 focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
           />
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="retired">Retired</option>
           </select>
           <select
             value={filterDriver}
             onChange={(e) => setFilterDriver(e.target.value)}
-            className="px-3 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
           >
             <option value="all">All Drivers</option>
-            {users.map((u) => (
-              <option key={u._id} value={u._id}>
-                {u.profile?.name || u.username}
+            {uniqueDrivers.map((driver) => (
+              <option key={driver._id} value={driver._id}>
+                {driver?.profile?.name || driver?.username || driver?.email}
               </option>
             ))}
           </select>
@@ -143,18 +176,18 @@ function ViewVehicle() {
 
         {/* Vehicle List */}
         {loading ? (
-          <p>Loading vehicles...</p>
+          <p className="text-gray-600">Loading vehicles...</p>
         ) : filteredVehicles.length === 0 ? (
-          <p>No vehicles found.</p>
+          <p className="text-gray-600">No vehicles found.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-4">
             {filteredVehicles.map((vehicle) => (
               <div
                 key={vehicle._id}
-                className="flex justify-between items-center p-4 bg-white shadow rounded-lg"
+                className="flex justify-between items-center p-4 bg-white shadow-lg rounded-lg hover:shadow-xl transition-all duration-200"
               >
                 <div className="flex flex-col">
-                  <p className="font-semibold">
+                  <p className="font-semibold text-lg text-gray-800">
                     {vehicle.make} {vehicle.model} ({vehicle.year})
                   </p>
                   <p className="text-gray-500 text-sm">
@@ -162,226 +195,360 @@ function ViewVehicle() {
                   </p>
                   <p className="text-sm text-gray-700">
                     Mileage: {vehicle.mileage || "N/A"} | Status:{" "}
-                    {vehicle.status}
+                    <span
+                      className={`${
+                        vehicle.status === "active"
+                          ? "text-green-600"
+                          : vehicle.status === "maintenance"
+                          ? "text-yellow-600"
+                          : "text-red-600"
+                      } font-medium`}
+                    >
+                      {vehicle.status}
+                    </span>
                   </p>
                   <p className="text-sm text-gray-700">
-                    Assigned Driver: {getDriverName(vehicle.assignedDriver)}
+                    Assigned Driver:{" "}
+                    {vehicle.assignedDriver?.profile?.name ||
+                      vehicle.assignedDriver?.username ||
+                      vehicle.assignedDriver?.email ||
+                      "N/A"}
                   </p>
                   <p className="text-sm text-gray-700">
                     Location: {vehicle.location || "N/A"}
                   </p>
                 </div>
-                <div className="space-x-3 flex-shrink-0">
-                  <Button
-                    onClick={() => handleEdit(vehicle)}
-                    variant="secondary"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    onClick={() => handleDelete(vehicle)}
-                    variant="danger"
-                  >
-                    Delete
-                  </Button>
-                </div>
+                {currentUser.role == "admin" ? (
+                  <div className="space-x-3 flex-shrink-0">
+                    <Button
+                      onClick={() => handleEdit(vehicle)}
+                      variant="secondary"
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() => handleDelete(vehicle)}
+                      variant="danger"
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                ) : (
+                  ""
+                )}
+                {currentUser.role === "manager" && (
+                  <div className="space-x-3 flex-shrink-0">
+                    <Button
+                      onClick={() => handleEdit(vehicle)}
+                      variant="secondary"
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200"
+                    >
+                      Edit
+                    </Button>
+
+                    <Button
+                      onClick={() => handleAssignDriver(vehicle)}
+                      variant="success"
+                      className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all duration-200"
+                    >
+                      Assign Driver
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
 
         {/* Edit Popup */}
-        {isEditPopupOpen && selectedVehicle && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-2xl overflow-y-auto max-h-[90vh]">
-              <h2 className="text-2xl font-bold mb-5 text-center text-gray-800">
-                ✏️ Edit Vehicle
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Make */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-1">
-                    Make
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedVehicle.make || ""}
-                    onChange={(e) =>
-                      setSelectedVehicle({
-                        ...selectedVehicle,
-                        make: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="Enter make"
-                  />
-                </div>
-
-                {/* Model */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-1">
-                    Model
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedVehicle.model || ""}
-                    onChange={(e) =>
-                      setSelectedVehicle({
-                        ...selectedVehicle,
-                        model: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="Enter model"
-                  />
-                </div>
-
-                {/* Year */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-1">
-                    Year
-                  </label>
-                  <input
-                    type="number"
-                    value={selectedVehicle.year || ""}
-                    onChange={(e) =>
-                      setSelectedVehicle({
-                        ...selectedVehicle,
-                        year: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="Enter year"
-                  />
-                </div>
-
-                {/* License Plate */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-1">
-                    License Plate
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedVehicle.licensePlate || ""}
-                    onChange={(e) =>
-                      setSelectedVehicle({
-                        ...selectedVehicle,
-                        licensePlate: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="Enter license plate"
-                  />
-                </div>
-
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-1">
-                    Vehicle Status
-                  </label>
-                  <select
-                    value={selectedVehicle.status || "active"}
-                    onChange={(e) =>
-                      setSelectedVehicle({
-                        ...selectedVehicle,
-                        status: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-
-                {/* Assigned Driver */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-1">
-                    Assigned Driver
-                  </label>
-                  <select
-                    value={selectedVehicle.assignedDriver || ""}
-                    onChange={(e) =>
-                      setSelectedVehicle({
-                        ...selectedVehicle,
-                        assignedDriver: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="">Select Driver</option>
-                    {users.map((u) => (
-                      <option key={u._id} value={u._id}>
-                        {u.profile?.name || u.username}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Location */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-600 mb-1">
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedVehicle.location || ""}
-                    onChange={(e) =>
-                      setSelectedVehicle({
-                        ...selectedVehicle,
-                        location: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="Enter location"
-                  />
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex justify-end gap-3 mt-6">
-                <Button
-                  onClick={() => setIsEditPopupOpen(false)}
-                  variant="outline"
+        <AnimatePresence>
+          {editingVehicle && (
+            <div
+              className="fixed inset-0 flex justify-end bg-black bg-opacity-50 z-50"
+              onClick={(e) => {
+                if (e.target.id === "modal-overlay") setEditingVehicle(null);
+              }}
+              id="modal-overlay"
+            >
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                className="relative bg-white h-full w-full max-w-lg p-6 shadow-2xl overflow-y-auto"
+              >
+                {/* Close Button */}
+                <button
+                  type="button"
+                  onClick={() => setEditingVehicle(null)}
+                  className="absolute top-3 right-3 text-gray-500 hover:text-red-500 transition-all"
                 >
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveEdit} variant="success">
-                  💾 Save
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+                  ❌
+                </button>
 
-        {/* Delete Confirmation Popup */}
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  ✏️ Edit Vehicle
+                </h2>
+
+                <form onSubmit={handleSaveEdit} className="space-y-4">
+                  {/* Make */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Make
+                    </label>
+                    <input
+                      type="text"
+                      value={editingVehicle.make || ""}
+                      onChange={(e) =>
+                        setEditingVehicle({
+                          ...editingVehicle,
+                          make: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                  </div>
+
+                  {/* Model */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Model
+                    </label>
+                    <input
+                      type="text"
+                      value={editingVehicle.model || ""}
+                      onChange={(e) =>
+                        setEditingVehicle({
+                          ...editingVehicle,
+                          model: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                  </div>
+
+                  {/* Year */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Year
+                    </label>
+                    <input
+                      type="number"
+                      value={editingVehicle.year || ""}
+                      onChange={(e) =>
+                        setEditingVehicle({
+                          ...editingVehicle,
+                          year: Number(e.target.value),
+                        })
+                      }
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                  </div>
+
+                  {/* Mileage */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Mileage
+                    </label>
+                    <input
+                      type="number"
+                      value={editingVehicle.mileage || ""}
+                      onChange={(e) =>
+                        setEditingVehicle({
+                          ...editingVehicle,
+                          mileage: Number(e.target.value),
+                        })
+                      }
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                  </div>
+
+                  {/* License Plate */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      License Plate
+                    </label>
+                    <input
+                      type="text"
+                      value={editingVehicle.licensePlate || ""}
+                      onChange={(e) =>
+                        setEditingVehicle({
+                          ...editingVehicle,
+                          licensePlate: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={editingVehicle.status || "active"}
+                      onChange={(e) =>
+                        setEditingVehicle({
+                          ...editingVehicle,
+                          status: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                    >
+                      <option value="active">Active</option>
+                      <option value="maintenance">Maintenance</option>
+                      <option value="retired">Retired</option>
+                    </select>
+                  </div>
+
+                  {/* Driver */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Assigned Driver
+                    </label>
+                    <select
+                      value={editingVehicle.assignedDriver || ""}
+                      onChange={(e) =>
+                        setEditingVehicle({
+                          ...editingVehicle,
+                          assignedDriver: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                    >
+                      <option value="">No Driver</option>
+                      {uniqueDrivers.map((driver) => (
+                        <option key={driver._id} value={driver._id}>
+                          {driver?.profile?.name ||
+                            driver?.username ||
+                            driver?.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Location
+                    </label>
+                    <input
+                      type="text"
+                      value={editingVehicle.location || ""}
+                      onChange={(e) =>
+                        setEditingVehicle({
+                          ...editingVehicle,
+                          location: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setEditingVehicle(null)}
+                      className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Driver Assign */}
+        <AnimatePresence>
+          {isAssigning && (
+            <div
+              className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50"
+              onClick={(e) => {
+                if (e.target.id === "assign-modal") setIsAssigning(false);
+              }}
+              id="assign-modal"
+            >
+              <motion.div
+                initial={{ y: "-50%", opacity: 0 }}
+                animate={{ y: "0%", opacity: 1 }}
+                exit={{ y: "-50%", opacity: 0 }}
+                className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md"
+              >
+                <h2 className="text-xl font-bold mb-4">Assign Driver</h2>
+
+                <select
+                  value={driverAssignment.driverId}
+                  onChange={(e) =>
+                    setDriverAssignment({
+                      ...driverAssignment,
+                      driverId: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg mb-4"
+                >
+                  <option value="">No Driver</option>
+                  {uniqueDrivers.map((driver) => (
+                    <option key={driver._id} value={driver._id}>
+                      {driver?.profile?.name ||
+                        driver?.username ||
+                        driver?.email}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setIsAssigning(false)}
+                    className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!driverAssignment.vehicleId) return;
+                      try {
+                        await dispatch(
+                          assignDriver({
+                            vehicleId: driverAssignment.vehicleId,
+                            driverId: driverAssignment.driverId || null,
+                          })
+                        ).unwrap();
+                        toast.success("Driver assigned successfully");
+                        setIsAssigning(false);
+                      } catch (err) {
+                        toast.error(err?.message || "Failed to assign driver");
+                      }
+                    }}
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+                  >
+                    Assign
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Delete Popup */}
         {isDeletePopupOpen && selectedVehicle && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-xl shadow-xl w-[350px] text-center">
-              <h2 className="text-xl font-bold mb-4">Delete Vehicle?</h2>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete{" "}
-                <span className="font-semibold">
-                  {selectedVehicle.make} {selectedVehicle.model}
-                </span>
-                ?
-              </p>
-              <div className="flex justify-center gap-3">
-                <button
-                  onClick={() => setIsDeletePopupOpen(false)}
-                  className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <DeleteCard
+              vehicle={selectedVehicle}
+              onCancel={() => setIsDeletePopupOpen(false)}
+              onConfirm={confirmDelete}
+            />
           </div>
         )}
       </div>

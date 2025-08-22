@@ -1,13 +1,8 @@
 import React, { useEffect, useState } from "react";
 import AdminLayouts from "../../layout/AdminLayouts";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchUsers,
-  createUser,
-  deleteUser,
-  updateUser,
-} from "../../context/userSlice"; // Use your slice actions
-import Button from "../../components/ui/Button";
+import { fetchUsers, deleteUser, updateUser } from "../../context/userSlice";
+import Button from "../../components/ui/Buttons/Button";
 import toast from "react-hot-toast";
 
 function ViewUsers() {
@@ -21,15 +16,23 @@ function ViewUsers() {
   const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
   const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
 
+  const currentUser = JSON.parse(localStorage.getItem("user"));
+
   // Fetch users on mount
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
-  // Filter users by search and role
+  // Filter users
   useEffect(() => {
     let temp = [...users];
 
+    // Manager can only see drivers
+    if (currentUser.role === "manager") {
+      temp = temp.filter((u) => u.role === "driver");
+    }
+
+    // Search filter
     if (searchQuery) {
       temp = temp.filter(
         (u) =>
@@ -38,18 +41,26 @@ function ViewUsers() {
       );
     }
 
+    // Role filter (only for admin)
     if (filterRole !== "all") {
       temp = temp.filter((u) => u.role === filterRole);
     }
 
     setFilteredUsers(temp);
-  }, [users, searchQuery, filterRole]);
+  }, [users, searchQuery, filterRole, currentUser.role]);
 
+  // Show error toast
   useEffect(() => {
-    if (error) toast.error(error);
+    if (error) {
+      const errorMessage =
+        typeof error === "string"
+          ? error
+          : error.message || "Something went wrong";
+      toast.error(errorMessage);
+    }
   }, [error]);
 
-  // Edit
+  // Edit user
   const handleEdit = (user) => {
     setSelectedUser({ ...user });
     setIsEditPopupOpen(true);
@@ -68,7 +79,7 @@ function ViewUsers() {
     }
   };
 
-  // Delete
+  // Delete user
   const handleDelete = (user) => {
     setSelectedUser(user);
     setIsDeletePopupOpen(true);
@@ -104,16 +115,20 @@ function ViewUsers() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="px-3 py-2 border rounded-lg w-1/2"
           />
-          <select
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            className="px-3 py-2 border rounded-lg"
-          >
-            <option value="all">All Roles</option>
-            <option value="admin">Admin</option>
-            <option value="driver">Driver</option>
-            <option value="manager">Manager</option>
-          </select>
+
+          {/* Role filter only for admin */}
+          {currentUser.role === "admin" && (
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="px-3 py-2 border rounded-lg"
+            >
+              <option value="all">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="manager">Manager</option>
+              <option value="driver">Driver</option>
+            </select>
+          )}
         </div>
 
         {/* User List */}
@@ -140,14 +155,21 @@ function ViewUsers() {
                     </p>
                   )}
                 </div>
-                <div className="space-x-3">
-                  <Button onClick={() => handleEdit(user)} variant="secondary">
-                    Edit
-                  </Button>
-                  <Button onClick={() => handleDelete(user)} variant="danger">
-                    Delete
-                  </Button>
-                </div>
+                {user.role === "admin" ? (
+                  <div className="space-x-3">
+                    <Button
+                      onClick={() => handleEdit(user)}
+                      variant="secondary"
+                    >
+                      Edit
+                    </Button>
+                    <Button onClick={() => handleDelete(user)} variant="danger">
+                      Delete
+                    </Button>
+                  </div>
+                ) : (
+                  ""
+                )}
               </div>
             ))}
           </div>
@@ -254,30 +276,11 @@ function ViewUsers() {
       {/* Delete Popup */}
       {isDeletePopupOpen && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-xl w-[350px] text-center">
-            <h2 className="text-xl font-bold mb-4">Delete User?</h2>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete{" "}
-              <span className="font-semibold">
-                {selectedUser.profile?.name}
-              </span>
-              ?
-            </p>
-            <div className="flex justify-center gap-3">
-              <button
-                onClick={() => setIsDeletePopupOpen(false)}
-                className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+          <DeleteCard
+            vehicle={selectedUser}
+            onCancel={() => setIsDeletePopupOpen(false)}
+            onConfirm={confirmDelete}
+          />
         </div>
       )}
     </AdminLayouts>

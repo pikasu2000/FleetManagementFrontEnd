@@ -1,6 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import AdminLayouts from "../../layout/AdminLayouts";
+import AdminLayouts from "../layout/AdminLayouts";
 
 function Dashboard() {
   return (

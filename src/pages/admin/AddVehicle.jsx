@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import AdminLayouts from "../../layout/AdminLayouts";
-import Button from "../../components/ui/Button";
+// import Button from "../../components/ui/Button";
 import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import { createVehicle } from "../../context/vehicleSlice";
 import { fetchUsers } from "../../context/userSlice";
 import MyDatePicker from "../../components/ui/DatePicker";
+import Button2 from "../../components/ui/Buttons/Button2";
 function AddVehicle() {
   const dispatch = useDispatch();
   const { loading } = useSelector((state) => state.vehicles);
@@ -192,9 +193,9 @@ function AddVehicle() {
 
           {/* Submit */}
           <div className="flex justify-end">
-            <Button type="submit" variant="primary" disabled={loading}>
+            <Button2 type="submit" disabled={loading}>
               {loading ? "Adding..." : "Add Vehicle"}
-            </Button>
+            </Button2>
           </div>
         </form>
       </div>

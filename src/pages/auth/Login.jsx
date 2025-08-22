@@ -25,11 +25,8 @@ function Login() {
     if (res.success) {
       localStorage.setItem("user", JSON.stringify(res.user));
       localStorage.setItem("token", res.token);
-      if (res.user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/");
-      }
+
+      navigate("/");
     } else {
       alert(res.message || "Login failed");
     }

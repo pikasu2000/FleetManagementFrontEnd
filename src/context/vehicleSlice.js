@@ -31,25 +31,41 @@ export const fetchVehicles = createAsyncThunk(
       const res = await axios.get(`${API_BASE_URL}/vehicles`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      return res.data.vehicles; // Adjust based on API response
+      return res.data.vehicles;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
 
-export const editVehicle = createAsyncThunk(
-  "vehicles/editVehicle",
-  async (vehicleData, { rejectWithValue }) => {
+export const assignDriver = createAsyncThunk(
+  "vehicles/assignDriver",
+  async ({ vehicleId, driverId }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.put(
-        `${API_BASE_URL}/vehicles/${vehicleData.id}`,
-        vehicleData,
+      const response = await axios.put(
+        `${API_BASE_URL}/vehicles/assign-driver`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          vehicleId,
+          driverId,
         }
       );
+      return response.data.vehicle;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to assign driver"
+      );
+    }
+  }
+);
+
+export const editVehicle = createAsyncThunk(
+  "vehicles/editVehicle",
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.put(`${API_BASE_URL}/vehicles/${id}`, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       return res.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -94,6 +110,24 @@ const vehicleSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     });
+
+    builder
+      .addCase(assignDriver.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(assignDriver.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedVehicle = action.payload;
+
+        state.vehicles = state.vehicles.map((v) =>
+          v._id === updatedVehicle._id ? updatedVehicle : v
+        );
+      })
+      .addCase(assignDriver.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
 
     // Fetch Vehicles
     builder.addCase(fetchVehicles.pending, (state) => {

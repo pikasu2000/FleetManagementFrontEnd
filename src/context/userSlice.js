@@ -34,6 +34,20 @@ export const fetchUsers = createAsyncThunk(
   }
 );
 
+export const fetchCurrentUser = createAsyncThunk(
+  "users/fetchCurrentUser",
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_BASE_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data.user;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
 // ✅ Update User
 export const updateUser = createAsyncThunk(
   "users/updateUser",
@@ -75,6 +89,7 @@ const userSlice = createSlice({
   name: "users",
   initialState: {
     users: [],
+    currentUser: null,
     loading: false,
     error: null,
   },
@@ -90,6 +105,18 @@ const userSlice = createSlice({
       state.users.push(action.payload);
     });
     builder.addCase(createUser.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+    builder.addCase(fetchCurrentUser.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(fetchCurrentUser.fulfilled, (state, action) => {
+      state.loading = false;
+      state.currentUser = action.payload;
+    });
+    builder.addCase(fetchCurrentUser.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload;
     });

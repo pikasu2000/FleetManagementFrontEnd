@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { LuBell } from "react-icons/lu";
+import ToggeleDarkThemeButton from "../Buttons/ToggeleDarkThemeButton";
 
 function AdminNavbar({ sidebarWidth }) {
   const location = useLocation();
@@ -9,16 +10,16 @@ function AdminNavbar({ sidebarWidth }) {
   const profileRef = useRef(null);
   const notificationRef = useRef(null);
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        profileRef.current && !profileRef.current.contains(event.target)
-      ) setIsProfileOpen(false);
+      if (profileRef.current && !profileRef.current.contains(event.target))
+        setIsProfileOpen(false);
 
       if (
-        notificationRef.current && !notificationRef.current.contains(event.target)
-      ) setIsNotificationOpen(false);
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      )
+        setIsNotificationOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -55,6 +56,8 @@ function AdminNavbar({ sidebarWidth }) {
 
       {/* Right side: Bell + Profile */}
       <div className="flex items-center gap-4 relative">
+        
+        <ToggeleDarkThemeButton  />
         {/* Notification Bell */}
         <div ref={notificationRef} className="relative">
           <button
