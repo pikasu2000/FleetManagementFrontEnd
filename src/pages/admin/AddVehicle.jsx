@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import { createVehicle } from "../../context/vehicleSlice";
 import { fetchUsers } from "../../context/userSlice";
-import MyDatePicker from "../../components/ui/DatePicker";
+
 import Button2 from "../../components/ui/Buttons/Button2";
 function AddVehicle() {
   const dispatch = useDispatch();
@@ -34,11 +34,15 @@ function AddVehicle() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); // ✅ Prevent page refresh
+    e.preventDefault();
     try {
-      await dispatch(createVehicle(formData)).unwrap();
+      const payload = {
+        ...formData,
+        year: Number(formData.year),
+        mileage: Number(formData.mileage),
+      };
+      await dispatch(createVehicle(payload)).unwrap();
       toast.success("✅ Vehicle created successfully!");
-      // Reset form
       setFormData({
         make: "",
         model: "",
@@ -50,7 +54,7 @@ function AddVehicle() {
         location: "",
       });
     } catch (err) {
-      toast.error(err || "❌ Failed to create vehicle");
+      toast.error(err?.message || "❌ Failed to create vehicle");
     }
   };
 
@@ -130,9 +134,9 @@ function AddVehicle() {
                 <option value="">Select driver</option>
                 {users
                   .filter((u) => u.role === "driver")
-                  .map((user) => (
-                    <option key={user._id} value={user._id}>
-                      {user.profile?.name || user.username}
+                  .map((user, idx) => (
+                    <option key={user._id || idx} value={user._id || ""}>
+                      {user.profile?.name || user.username || "Unknown"}
                     </option>
                   ))}
               </select>

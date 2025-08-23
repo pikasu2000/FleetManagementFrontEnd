@@ -38,16 +38,30 @@ export const fetchVehicles = createAsyncThunk(
   }
 );
 
+export const fetchVehiclesById = createAsyncThunk(
+  "vehicles/fetchVehiclesById",
+  async (id, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await axios.get(`${API_BASE_URL}/vehicles/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data.vehicle;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
 export const assignDriver = createAsyncThunk(
   "vehicles/assignDriver",
   async ({ vehicleId, driverId }, { rejectWithValue }) => {
     try {
+      const token = localStorage.getItem("token");
       const response = await axios.put(
-        `${API_BASE_URL}/vehicles/assign-driver`,
-        {
-          vehicleId,
-          driverId,
-        }
+        `${API_BASE_URL}/vehicles/assign-driver/${vehicleId}`,
+        { driverId },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       return response.data.vehicle;
     } catch (error) {
@@ -94,23 +108,41 @@ const vehicleSlice = createSlice({
     vehicles: [],
     loading: false,
     error: null,
+    selectedVehicle: null,
   },
   reducers: {},
   extraReducers: (builder) => {
-    // Create Vehicle
-    builder.addCase(createVehicle.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
-    builder.addCase(createVehicle.fulfilled, (state, action) => {
-      state.loading = false;
-      state.vehicles.push(action.payload);
-    });
-    builder.addCase(createVehicle.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload;
-    });
+    builder
+      .addCase(fetchVehiclesById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.selectedVehicle = null;
+      })
+      .addCase(fetchVehiclesById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.selectedVehicle = action.payload;
+      })
+      .addCase(fetchVehiclesById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
 
+    // --- Create Vehicle ---
+    builder
+      .addCase(createVehicle.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createVehicle.fulfilled, (state, action) => {
+        state.loading = false;
+        state.vehicles.push(action.payload);
+      })
+      .addCase(createVehicle.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
+    // --- Assign Driver ---
     builder
       .addCase(assignDriver.pending, (state) => {
         state.loading = true;
@@ -120,45 +152,83 @@ const vehicleSlice = createSlice({
         state.loading = false;
         const updatedVehicle = action.payload;
 
+        // Update in vehicles array
         state.vehicles = state.vehicles.map((v) =>
           v._id === updatedVehicle._id ? updatedVehicle : v
         );
+
+        // Update selectedVehicle if it matches
+        if (state.selectedVehicle?._id === updatedVehicle._id) {
+          state.selectedVehicle = updatedVehicle;
+        }
       })
       .addCase(assignDriver.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
 
-    // Fetch Vehicles
-    builder.addCase(fetchVehicles.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
-    builder.addCase(fetchVehicles.fulfilled, (state, action) => {
-      state.loading = false;
-      state.vehicles = action.payload;
-    });
-    builder.addCase(fetchVehicles.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload;
-    });
-    builder.addCase(editVehicle.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
-    builder.addCase(editVehicle.fulfilled, (state, action) => {
-      state.loading = false;
-      const index = state.vehicles.findIndex(
-        (v) => v._id === action.payload._id
-      );
-      if (index !== -1) {
-        state.vehicles[index] = action.payload;
-      }
-    });
-    builder.addCase(editVehicle.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload;
-    });
+    // --- Fetch Vehicles ---
+    builder
+      .addCase(fetchVehicles.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchVehicles.fulfilled, (state, action) => {
+        state.loading = false;
+        state.vehicles = action.payload;
+      })
+      .addCase(fetchVehicles.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
+    // --- Edit Vehicle ---
+    builder
+      .addCase(editVehicle.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(editVehicle.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedVehicle = action.payload;
+
+        // Update in vehicles array
+        const index = state.vehicles.findIndex(
+          (v) => v._id === updatedVehicle._id
+        );
+        if (index !== -1) state.vehicles[index] = updatedVehicle;
+
+        // Update selectedVehicle if it matches
+        if (state.selectedVehicle?._id === updatedVehicle._id) {
+          state.selectedVehicle = updatedVehicle;
+        }
+      })
+      .addCase(editVehicle.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
+    // --- Delete Vehicle ---
+    builder
+      .addCase(deleteVehicle.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteVehicle.fulfilled, (state, action) => {
+        state.loading = false;
+        state.vehicles = state.vehicles.filter(
+          (v) => v._id !== action.payload._id
+        );
+
+        // Clear selectedVehicle if deleted
+        if (state.selectedVehicle?._id === action.payload._id) {
+          state.selectedVehicle = null;
+        }
+      })
+      .addCase(deleteVehicle.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
   },
 });
 

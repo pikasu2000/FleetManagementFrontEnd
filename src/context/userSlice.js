@@ -89,11 +89,17 @@ const userSlice = createSlice({
   name: "users",
   initialState: {
     users: [],
-    currentUser: null,
+    currentUser: JSON.parse(localStorage.getItem("user")) || null,
     loading: false,
     error: null,
+    token: localStorage.getItem("token") || null,
   },
-  reducers: {},
+  reducers: {
+    logout: (state) => {
+      state.currentUser = null;
+      state.token = null;
+    },
+  },
   extraReducers: (builder) => {
     // Create User
     builder.addCase(createUser.pending, (state) => {
@@ -166,4 +172,5 @@ const userSlice = createSlice({
   },
 });
 
+export const { logout } = userSlice.actions;
 export default userSlice.reducer;

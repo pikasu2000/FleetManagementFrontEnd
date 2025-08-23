@@ -12,14 +12,18 @@ import {
 import { FaHome } from "react-icons/fa";
 import toast from "react-hot-toast";
 import Button1 from "./ui/Buttons/Button1";
-
+import { useDispatch } from "react-redux";
+import { logout } from "../context/userSlice";
 function Sidebar({ isOpen, setIsOpen }) {
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const logouthandle = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    dispatch(logout());
+
     toast.success("Logout Successfully");
     navigate("/login");
   };
@@ -74,14 +78,14 @@ function Sidebar({ isOpen, setIsOpen }) {
       label: "Add Trip",
       icon: <LuBookPlus size={18} />,
       to: "/add-trip",
-      roles: ["driver", "admin"],
+      roles: ["admin"],
       section: "Trip Management",
     },
     {
       label: "View Trips",
       icon: <LuSignpost size={18} />,
       to: "/view-trips",
-      roles: ["admin", "moderator", "driver"],
+      roles: ["admin", "manager", "driver"],
       section: "Trip Management",
     },
 
@@ -90,14 +94,14 @@ function Sidebar({ isOpen, setIsOpen }) {
       label: "View Reports",
       icon: <LuSignpost size={18} />,
       to: "/admin/view-reports",
-      roles: ["admin", "moderator"],
+      roles: ["admin", "manager"],
       section: "Reports",
     },
     {
       label: "Summary",
       icon: <LuChartBar size={18} />,
       to: "/summary",
-      roles: ["admin", "moderator"],
+      roles: ["admin", "manager"],
       section: "Reports",
     },
 

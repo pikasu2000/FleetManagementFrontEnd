@@ -10,6 +10,8 @@ import Login from "./pages/auth/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Toaster } from "react-hot-toast";
 import Dashboard from "./pages/Dashboard";
+import ViewTrips from "./pages/ViewTrips";
+import VehicleDetails from "./pages/VehicleDetails";
 
 function App() {
   return (
@@ -33,8 +35,16 @@ function App() {
         <Route
           path="/add-trip"
           element={
-            <ProtectedRoute roles={["admin", "driver", "manager"]}>
+            <ProtectedRoute roles={["admin", "manager"]}>
               <AddTrip />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/view-trips"
+          element={
+            <ProtectedRoute roles={["admin", "driver", "manager"]}>
+              <ViewTrips />
             </ProtectedRoute>
           }
         />
@@ -77,6 +87,14 @@ function App() {
           element={
             <ProtectedRoute roles={["admin", "manager", "driver"]}>
               <ViewVehicle />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/view-vehicles/:id"
+          element={
+            <ProtectedRoute roles={["admin", "manager", "driver"]}>
+              <VehicleDetails />
             </ProtectedRoute>
           }
         />
