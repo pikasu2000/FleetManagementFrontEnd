@@ -14,14 +14,13 @@ import toast from "react-hot-toast";
 import Button1 from "./ui/Buttons/Button1";
 import { useDispatch } from "react-redux";
 import { logout } from "../context/userSlice";
+
 function Sidebar({ isOpen, setIsOpen }) {
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const logouthandle = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
     dispatch(logout());
 
     toast.success("Logout Successfully");
@@ -31,7 +30,6 @@ function Sidebar({ isOpen, setIsOpen }) {
   const linkClass =
     "flex items-center gap-3 font-medium px-4 py-2 rounded-xl transition-all duration-300";
 
-  // Menu Items with role access
   const menuItems = [
     {
       label: "Dashboard",
@@ -40,10 +38,8 @@ function Sidebar({ isOpen, setIsOpen }) {
       roles: ["admin", "driver", "manager"],
       section: "Main",
     },
-
-    // User Management
     {
-      label: user.role == "admin" ? "Add Driver/Manager" : "Add Driver",
+      label: user.role === "admin" ? "Add Driver/Manager" : "Add Driver",
       icon: <LuBookPlus size={18} />,
       to: "/add-driver",
       roles: ["admin", "manager"],
@@ -56,8 +52,6 @@ function Sidebar({ isOpen, setIsOpen }) {
       roles: ["admin", "manager"],
       section: "User Management",
     },
-
-    // Vehicle Management
     {
       label: "Add Vehicle",
       icon: <LuBookPlus size={18} />,
@@ -72,8 +66,6 @@ function Sidebar({ isOpen, setIsOpen }) {
       roles: ["admin", "driver", "manager"],
       section: "Vehicle Management",
     },
-
-    // Trip Management
     {
       label: "Add Trip",
       icon: <LuBookPlus size={18} />,
@@ -88,8 +80,28 @@ function Sidebar({ isOpen, setIsOpen }) {
       roles: ["admin", "manager", "driver"],
       section: "Trip Management",
     },
+    {
+      label: "Add GeoFence",
+      icon: <LuBookPlus size={18} />,
+      to: "/add-geo-fence",
+      roles: ["admin", "manager", "driver"],
+      section: "GeoFence Management",
+    },
+    {
+      label: "GeoFence",
+      icon: <LuSignpost size={18} />,
+      to: "/geo-fence",
+      roles: ["admin", "manager", "driver"],
+      section: "GeoFence Management",
+    },
 
-    // Reports
+    {
+      label: "Maintenance",
+      icon: <LuSignpost size={18} />,
+      to: "/maintenance",
+      roles: ["admin", "manager", "driver"],
+      section: "Maintenance Management",
+    },
     {
       label: "View Reports",
       icon: <LuSignpost size={18} />,
@@ -104,8 +116,6 @@ function Sidebar({ isOpen, setIsOpen }) {
       roles: ["admin", "manager"],
       section: "Reports",
     },
-
-    // Profile
     {
       label: "Accounts",
       icon: <LuUser size={18} />,
@@ -113,8 +123,6 @@ function Sidebar({ isOpen, setIsOpen }) {
       roles: ["admin", "manager", "driver"],
       section: "Profile",
     },
-
-    // Settings
     {
       label: "Settings",
       icon: <LuSettings size={18} />,
@@ -124,7 +132,6 @@ function Sidebar({ isOpen, setIsOpen }) {
     },
   ];
 
-  // Group items by section
   const groupedItems = menuItems.reduce((acc, item) => {
     if (!acc[item.section]) acc[item.section] = [];
     acc[item.section].push(item);
@@ -137,7 +144,7 @@ function Sidebar({ isOpen, setIsOpen }) {
         isOpen ? "w-64" : "w-20"
       }`}
     >
-      {/* Profile Section */}
+      {/* Profile */}
       <div className="flex flex-col items-center text-center p-4 border-b border-gray-700 relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -145,7 +152,6 @@ function Sidebar({ isOpen, setIsOpen }) {
         >
           {isOpen ? <LuChevronLeft /> : <LuChevronRight />}
         </button>
-
         <img
           className="h-14 w-14 rounded-full border-2 border-[#ffe6c9] shadow-lg"
           src={
@@ -168,7 +174,7 @@ function Sidebar({ isOpen, setIsOpen }) {
           const items = groupedItems[section].filter((item) =>
             item.roles.includes(user.role)
           );
-          if (items.length === 0) return null;
+          if (!items.length) return null;
 
           return (
             <div key={idx}>
@@ -177,21 +183,25 @@ function Sidebar({ isOpen, setIsOpen }) {
                   {section}
                 </p>
               )}
-              {items.map((item, index) => (
-                <NavLink
-                  key={index}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `${linkClass} ${
-                      isActive
-                        ? "bg-[#ffe6c9] text-black shadow-md"
-                        : "hover:bg-gray-700 hover:scale-[1.05]"
-                    }`
-                  }
-                >
-                  {item.icon} {isOpen && item.label}
-                </NavLink>
-              ))}
+              {items.map((item, index) => {
+                const isActive = window.location.pathname.startsWith(item.to);
+                return (
+                  <NavLink
+                    key={index}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      `${linkClass} ${
+                        isActive
+                          ? "bg-[#ffe6c9] text-black shadow-md"
+                          : "hover:bg-gray-700 hover:scale-[1.05]"
+                      }`
+                    }
+                    end={item.to === "/"}
+                  >
+                    {item.icon} {isOpen && item.label}
+                  </NavLink>
+                );
+              })}
             </div>
           );
         })}

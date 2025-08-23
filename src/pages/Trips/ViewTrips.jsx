@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import AdminLayouts from "../layout/AdminLayouts";
+import AdminLayouts from "../../layout/AdminLayouts";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import Button from "../components/ui/Buttons/Button";
-import DeleteCard from "../components/ui/Cards/DeleteCard";
-import { fetchTrips, deleteTrip } from "../context/tripSlice";
+import Button from "../../components/ui/Buttons/Button";
+import DeleteCard from "../../components/ui/Cards/DeleteCard";
+import { fetchTrips, deleteTrip } from "../../context/tripSlice";
 
 function ViewTrips() {
   const dispatch = useDispatch();

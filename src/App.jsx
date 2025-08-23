@@ -1,17 +1,23 @@
 import { Routes, Route } from "react-router-dom";
 
-import AddDriver from "./pages/admin/AddDriver";
-import ViewUsers from "./pages/admin/ViewUsers";
-import AddVehicle from "./pages/admin/AddVehicle";
-import ViewVehicle from "./pages/admin/VeiwVehicle";
-import AddTrip from "./pages/AddTrip";
-import Profile from "./pages/Profile";
+import AddDriver from "./pages/Users/AddDriver";
+import ViewUsers from "./pages/Users/ViewUsers";
+import AddVehicle from "./pages/Vehicle/AddVehicle";
+import ViewVehicle from "./pages/Vehicle/VeiwVehicle";
+import AddTrip from "./pages/Trips/AddTrip";
+import Profile from "./pages/Users/Profile";
 import Login from "./pages/auth/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Toaster } from "react-hot-toast";
 import Dashboard from "./pages/Dashboard";
-import ViewTrips from "./pages/ViewTrips";
-import VehicleDetails from "./pages/VehicleDetails";
+import ViewTrips from "./pages/Trips/ViewTrips";
+import VehicleDetails from "./pages/Vehicle/VehicleDetails";
+import GeoFenceDashboard from "./pages/GeoFence/GeoFenceDashboard";
+import MaintenanceDashboard from "./pages/Maintenance/MaintenanceDahsboard";
+import AddGeofence from "./pages/GeoFence/AddGeoFence";
+import EditVehicle from "./pages/Vehicle/EditVehicle";
+import AssignDriver from "./pages/Vehicle/AssignDriver";
+import ActivityLog from "./pages/ActivityLog";
 
 function App() {
   return (
@@ -95,6 +101,60 @@ function App() {
           element={
             <ProtectedRoute roles={["admin", "manager", "driver"]}>
               <VehicleDetails />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/edit-vehicle/:id"
+          element={
+            <ProtectedRoute roles={["admin", "manager"]}>
+              <EditVehicle />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/assign-driver/:id"
+          element={
+            <ProtectedRoute roles={["admin", "manager"]}>
+              <AssignDriver />
+            </ProtectedRoute>
+          }
+        />
+        {/* GeoFence */}
+        <Route
+          path="/geo-fence"
+          element={
+            <ProtectedRoute roles={["admin", "manager", "driver"]}>
+              <GeoFenceDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/add-geo-fence"
+          element={
+            <ProtectedRoute roles={["admin", "manager", "driver"]}>
+              <AddGeofence />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Maintenance */}
+        <Route
+          path="/maintenance"
+          element={
+            <ProtectedRoute roles={["admin", "manager", "driver"]}>
+              <MaintenanceDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/activity-log"
+          element={
+            <ProtectedRoute roles={["admin", "manager"]}>
+              <ActivityLog />
             </ProtectedRoute>
           }
         />

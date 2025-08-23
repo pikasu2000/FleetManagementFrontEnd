@@ -1,8 +1,8 @@
 import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
-import { fetchVehiclesById } from "../context/vehicleSlice";
-import AdminLayouts from "../layout/AdminLayouts";
+import { fetchVehiclesById } from "../../context/vehicleSlice";
+import AdminLayouts from "../../layout/AdminLayouts";
 
 function VehicleDetails() {
   const { id: vehicleId } = useParams();

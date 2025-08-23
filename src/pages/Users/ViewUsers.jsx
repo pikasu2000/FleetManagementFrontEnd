@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchUsers, deleteUser, updateUser } from "../../context/userSlice";
 import Button from "../../components/ui/Buttons/Button";
 import toast from "react-hot-toast";
+import DeleteCard from "../../components/ui/Cards/DeleteCard";
 
 function ViewUsers() {
   const dispatch = useDispatch();
@@ -155,7 +156,7 @@ function ViewUsers() {
                     </p>
                   )}
                 </div>
-                {user.role === "admin" ? (
+                {currentUser.role === "admin" ? (
                   <div className="space-x-3">
                     <Button
                       onClick={() => handleEdit(user)}

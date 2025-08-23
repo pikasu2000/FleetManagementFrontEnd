@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import AdminLayouts from "../layout/AdminLayouts";
+import AdminLayouts from "../../layout/AdminLayouts";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchCurrentUser } from "../context/userSlice";
+import { fetchCurrentUser } from "../../context/userSlice";
 
 function Profile() {
   const dispatch = useDispatch();

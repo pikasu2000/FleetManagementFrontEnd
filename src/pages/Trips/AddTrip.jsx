@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import AdminLayouts from "../layout/AdminLayouts";
+import AdminLayouts from "../../layout/AdminLayouts";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchUsers } from "../context/userSlice";
-import { fetchVehicles } from "../context/vehicleSlice";
-import { createTrip } from "../context/tripSlice";
+import { fetchUsers } from "../../context/userSlice";
+import { fetchVehicles } from "../../context/vehicleSlice";
+import { createTrip } from "../../context/tripSlice";
 import toast from "react-hot-toast";
 import { DatePicker } from "antd";
-import Button from "../components/ui/Buttons/Button";
+import Button from "../../components/ui/Buttons/Button";
 import moment from "moment";
 
 function AddTrip() {
