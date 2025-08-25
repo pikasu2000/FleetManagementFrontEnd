@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import AdminLayouts from "../../layout/AdminLayouts";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchUsers } from "../../context/userSlice";
 import { fetchVehicles } from "../../context/vehicleSlice";
 import { createTrip } from "../../context/tripSlice";
 import toast from "react-hot-toast";
@@ -11,12 +10,10 @@ import moment from "moment";
 
 function AddTrip() {
   const dispatch = useDispatch();
-  const { users } = useSelector((state) => state.users);
   const { vehicles } = useSelector((state) => state.vehicles);
+  const { trips } = useSelector((state) => state.trips);
 
   const [formData, setFormData] = useState({
-    driverId: "",
-    vehicleId: "",
     startLocation: "",
     endLocation: "",
     startTime: null,
@@ -24,60 +21,55 @@ function AddTrip() {
     distance: "",
     purpose: "",
     fuelUsed: "",
-    status: "",
-    type: "",
+    tripType: "",
+    vehicleId: "",
   });
 
-  // Fetch users and vehicles on mount
+  // Fetch vehicles on mount
   useEffect(() => {
-    if (!users.length) dispatch(fetchUsers());
     if (!vehicles.length) dispatch(fetchVehicles());
-  }, [dispatch, users.length, vehicles.length]);
+    console.log("Vehicles:", vehicles);
+  }, [dispatch, vehicles.length]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleDateChange = (field, value) => {
-    // value is a moment object from Ant Design DatePicker
     setFormData({ ...formData, [field]: value ? value.toDate() : null });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate required fields
+    // Required fields check
     if (
-      !formData.driverId ||
-      !formData.vehicleId ||
       !formData.startLocation ||
       !formData.endLocation ||
-      !formData.startTime
+      !formData.startTime ||
+      !formData.vehicleId ||
+      !formData.tripType
     ) {
-      toast.error("Please fill all required fields!");
-      return;
+      return toast.error("Please fill all required fields!");
     }
 
-    // Validate startTime < endTime
     if (formData.endTime && formData.startTime > formData.endTime) {
-      toast.error("Start time must be before end time!");
-      return;
+      return toast.error("Start time must be before end time!");
     }
 
     try {
       const payload = {
         ...formData,
-        startTime: formData.startTime ? formData.startTime.toISOString() : null,
+        startTime: formData.startTime.toISOString(),
         endTime: formData.endTime ? formData.endTime.toISOString() : null,
         distance: formData.distance ? Number(formData.distance) : undefined,
         fuelUsed: formData.fuelUsed ? Number(formData.fuelUsed) : undefined,
+        status: "pending", // synced with backend and trips view
       };
 
       await dispatch(createTrip(payload)).unwrap();
-      toast.success("Trip added successfully!");
+      toast.success("Trip request created successfully!");
       setFormData({
-        driverId: "",
-        vehicleId: "",
         startLocation: "",
         endLocation: "",
         startTime: null,
@@ -85,65 +77,41 @@ function AddTrip() {
         distance: "",
         purpose: "",
         fuelUsed: "",
-        status: "",
-        type: "",
+        tripType: "",
+        vehicleId: "",
       });
     } catch (error) {
-      console.error("Error adding trip:", error);
-
-      // Safe access of error message
       const message =
-        error?.data?.message || // if backend sends {data: {message: ...}}
-        error?.message || // normal JS error
-        "Failed to add trip";
-
+        error?.data?.message || error?.message || "Failed to create trip";
       toast.error(message);
     }
   };
 
-  const selectedDriver = users.find((u) => u._id === formData.driverId);
+  // Compute vehicle availability
+  const vehiclesWithStatus = vehicles.map((vehicle) => {
+    const assignedTrip = trips.find(
+      (t) =>
+        t.vehicleId?._id === vehicle._id &&
+        ["pending", "assigned", "ongoing"].includes(t.status)
+    );
+    return {
+      ...vehicle,
+      isAvailable: !assignedTrip,
+    };
+  });
+
   const selectedVehicle = vehicles.find((v) => v._id === formData.vehicleId);
 
   return (
     <AdminLayouts>
       <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg">
-        <h2 className="text-3xl font-bold text-gray-800 mb-8">Add Trip</h2>
+        <h2 className="text-3xl font-bold text-gray-800 mb-8">
+          Request a Trip
+        </h2>
         <form
           onSubmit={handleSubmit}
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
-          {/* Driver */}
-          <div>
-            <label className="block mb-1 font-semibold text-gray-700">
-              Driver <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="driverId"
-              value={formData.driverId}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg"
-            >
-              <option value="">Select Driver</option>
-              {users.map((u) => (
-                <option key={u._id} value={u._id}>
-                  {u.profile?.name || u.username}
-                </option>
-              ))}
-            </select>
-
-            {selectedDriver && (
-              <div className="mt-2 p-2 border rounded-lg bg-gray-50 text-gray-700 text-sm">
-                <p>
-                  <strong>Name:</strong>{" "}
-                  {selectedDriver.profile?.name || selectedDriver.username}
-                </p>
-                <p>
-                  <strong>Email:</strong> {selectedDriver.email}
-                </p>
-              </div>
-            )}
-          </div>
-
           {/* Vehicle */}
           <div>
             <label className="block mb-1 font-semibold text-gray-700">
@@ -156,9 +124,15 @@ function AddTrip() {
               className="w-full px-4 py-2 border rounded-lg"
             >
               <option value="">Select Vehicle</option>
-              {vehicles.map((v) => (
-                <option key={v._id} value={v._id}>
-                  {v.make} {v.model} ({v.licensePlate})
+              {vehiclesWithStatus.map((v) => (
+                <option
+                  key={v._id}
+                  value={v._id}
+                  disabled={!v.isAvailable}
+                  className={!v.isAvailable ? "text-gray-400" : ""}
+                >
+                  {v.make} {v.model} ({v.licensePlate}){" "}
+                  {v.isAvailable ? "" : "(Assigned)"}
                 </option>
               ))}
             </select>
@@ -174,6 +148,30 @@ function AddTrip() {
                 </p>
               </div>
             )}
+
+            {vehiclesWithStatus.filter((v) => v.isAvailable).length === 0 && (
+              <p className="text-red-500 mt-2 text-sm">
+                No available vehicles at the moment.
+              </p>
+            )}
+          </div>
+
+          {/* Trip Type */}
+          <div>
+            <label className="block mb-1 font-semibold text-gray-700">
+              Trip Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="tripType"
+              value={formData.tripType}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-lg"
+            >
+              <option value="">Select Trip Type</option>
+              <option value="delivery">Delivery</option>
+              <option value="passenger">Passenger</option>
+              <option value="personal">Personal</option>
+            </select>
           </div>
 
           {/* Start Location */}
@@ -229,41 +227,6 @@ function AddTrip() {
               className="w-full"
             />
           </div>
-          {/* Status */}
-          <div>
-            <label className="block mb-1 font-semibold text-gray-700">
-              Status <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg"
-            >
-              <option value="">Select Status</option>
-              <option value="ongoing">Ongoing</option>
-              <option value="completed">Completed</option>
-              <option value="canceled">Canceled</option>
-            </select>
-          </div>
-
-          {/* Trip Type */}
-          <div>
-            <label className="block mb-1 font-semibold text-gray-700">
-              Trip Type <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="type"
-              value={formData.type}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg"
-            >
-              <option value="">Select Trip Type</option>
-              <option value="delivery">Delivery</option>
-              <option value="passenger">Passenger</option>
-              <option value="personal">Personal</option>
-            </select>
-          </div>
 
           {/* Distance */}
           <div>
@@ -311,8 +274,12 @@ function AddTrip() {
 
           {/* Submit */}
           <div className="md:col-span-2 flex justify-end">
-            <Button type="submit" variant="primary">
-              Add Trip
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={!formData.vehicleId}
+            >
+              Request Trip
             </Button>
           </div>
         </form>

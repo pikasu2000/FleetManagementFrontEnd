@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LuBookPlus,
@@ -12,14 +12,19 @@ import {
 import { FaHome } from "react-icons/fa";
 import toast from "react-hot-toast";
 import Button1 from "./ui/Buttons/Button1";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../context/userSlice";
+import { fetchCurrentUser } from "../context/userSlice";
 
 function Sidebar({ isOpen, setIsOpen }) {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const { currentUser, loading, error } = useSelector((state) => state.users);
+  const user = currentUser || JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  useEffect(() => {
+    dispatch(fetchCurrentUser());
+  }, [dispatch]);
   const logouthandle = () => {
     dispatch(logout());
 
@@ -35,7 +40,7 @@ function Sidebar({ isOpen, setIsOpen }) {
       label: "Dashboard",
       icon: <FaHome size={18} />,
       to: "/",
-      roles: ["admin", "driver", "manager"],
+      roles: ["admin", "driver", "manager", "user"],
       section: "Main",
     },
     {
@@ -70,7 +75,7 @@ function Sidebar({ isOpen, setIsOpen }) {
       label: "Add Trip",
       icon: <LuBookPlus size={18} />,
       to: "/add-trip",
-      roles: ["admin"],
+      roles: ["admin", "manager", "user"],
       section: "Trip Management",
     },
     {
@@ -78,6 +83,13 @@ function Sidebar({ isOpen, setIsOpen }) {
       icon: <LuSignpost size={18} />,
       to: "/view-trips",
       roles: ["admin", "manager", "driver"],
+      section: "Trip Management",
+    },
+    {
+      label: "View Trips",
+      icon: <LuSignpost size={18} />,
+      to: "/view-trips/user",
+      roles: ["user"],
       section: "Trip Management",
     },
     {
@@ -120,7 +132,7 @@ function Sidebar({ isOpen, setIsOpen }) {
       label: "Accounts",
       icon: <LuUser size={18} />,
       to: "/profile",
-      roles: ["admin", "manager", "driver"],
+      roles: ["admin", "manager", "driver", "user"],
       section: "Profile",
     },
     {

@@ -18,6 +18,10 @@ import AddGeofence from "./pages/GeoFence/AddGeoFence";
 import EditVehicle from "./pages/Vehicle/EditVehicle";
 import AssignDriver from "./pages/Vehicle/AssignDriver";
 import ActivityLog from "./pages/ActivityLog";
+import EditUser from "./pages/Users/EditUser";
+import Register from "./pages/auth/Register";
+import { useEffect } from "react";
+import UserViewTrip from "./pages/Trips/UserViewTrip";
 
 function App() {
   return (
@@ -26,6 +30,7 @@ function App() {
         {/* Public Routes */}
 
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
         {/* Profile accessible by all logged-in users */}
         <Route
@@ -41,7 +46,7 @@ function App() {
         <Route
           path="/add-trip"
           element={
-            <ProtectedRoute roles={["admin", "manager"]}>
+            <ProtectedRoute roles={["admin", "manager", "user"]}>
               <AddTrip />
             </ProtectedRoute>
           }
@@ -54,12 +59,20 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/view-trips/user"
+          element={
+            <ProtectedRoute roles={["user"]}>
+              <UserViewTrip />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Admin Routes */}
         <Route
           path="/"
           element={
-            <ProtectedRoute roles={["admin", "driver", "manager"]}>
+            <ProtectedRoute roles={["admin", "driver", "manager", "user"]}>
               <Dashboard />
             </ProtectedRoute>
           }
@@ -77,6 +90,14 @@ function App() {
           element={
             <ProtectedRoute roles={["admin", "manager"]}>
               <ViewUsers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/edit-users/:id"
+          element={
+            <ProtectedRoute roles={["admin", "manager"]}>
+              <EditUser />
             </ProtectedRoute>
           }
         />

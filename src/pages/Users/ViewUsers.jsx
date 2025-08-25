@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from "react";
 import AdminLayouts from "../../layout/AdminLayouts";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchUsers, deleteUser, updateUser } from "../../context/userSlice";
+import { fetchUsers, deleteUser } from "../../context/userSlice";
 import Button from "../../components/ui/Buttons/Button";
 import toast from "react-hot-toast";
 import DeleteCard from "../../components/ui/Cards/DeleteCard";
+import { useNavigate } from "react-router-dom";
 
 function ViewUsers() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { users, loading, error } = useSelector((state) => state.users);
 
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [selectedUser, setSelectedUser] = useState(null);
-  const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
+
   const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
 
   const currentUser = JSON.parse(localStorage.getItem("user"));
@@ -28,7 +30,6 @@ function ViewUsers() {
   useEffect(() => {
     let temp = [...users];
 
-    // Manager can only see drivers
     if (currentUser.role === "manager") {
       temp = temp.filter((u) => u.role === "driver");
     }
@@ -42,7 +43,6 @@ function ViewUsers() {
       );
     }
 
-    // Role filter (only for admin)
     if (filterRole !== "all") {
       temp = temp.filter((u) => u.role === filterRole);
     }
@@ -50,7 +50,6 @@ function ViewUsers() {
     setFilteredUsers(temp);
   }, [users, searchQuery, filterRole, currentUser.role]);
 
-  // Show error toast
   useEffect(() => {
     if (error) {
       const errorMessage =
@@ -63,21 +62,7 @@ function ViewUsers() {
 
   // Edit user
   const handleEdit = (user) => {
-    setSelectedUser({ ...user });
-    setIsEditPopupOpen(true);
-  };
-
-  const handleSaveEdit = async () => {
-    try {
-      await dispatch(
-        updateUser({ id: selectedUser._id, userData: selectedUser })
-      ).unwrap();
-      toast.success("User updated successfully");
-      setIsEditPopupOpen(false);
-      dispatch(fetchUsers());
-    } catch (err) {
-      toast.error(err || "Failed to update user");
-    }
+    navigate(`/edit-users/${user._id}`);
   };
 
   // Delete user
@@ -178,101 +163,6 @@ function ViewUsers() {
       </div>
 
       {/* Edit Popup */}
-      {isEditPopupOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-8 rounded-2xl shadow-2xl w-[650px] max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-              ✏️ Edit User
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Full Name */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={selectedUser.profile?.name || ""}
-                  onChange={(e) =>
-                    setSelectedUser({
-                      ...selectedUser,
-                      profile: {
-                        ...selectedUser.profile,
-                        name: e.target.value,
-                      },
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Enter full name"
-                />
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={selectedUser.email || ""}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, email: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Enter email"
-                />
-              </div>
-
-              {/* Role */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  Role
-                </label>
-                <select
-                  value={selectedUser.role || "driver"}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, role: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="admin">Admin</option>
-                  <option value="manager">Manager</option>
-                  <option value="driver">Driver</option>
-                </select>
-              </div>
-
-              {/* Status */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1">
-                  Status
-                </label>
-                <select
-                  value={selectedUser.status || "active"}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, status: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-4 mt-8">
-              <Button
-                onClick={() => setIsEditPopupOpen(false)}
-                variant="outline"
-              >
-                Cancel
-              </Button>
-              <Button variant="success" onClick={handleSaveEdit}>
-                💾 Save
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Delete Popup */}
       {isDeletePopupOpen && selectedUser && (

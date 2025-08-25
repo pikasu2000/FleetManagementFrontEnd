@@ -155,13 +155,7 @@ function ViewVehicle() {
                       {vehicle.status}
                     </span>
                   </p>
-                  <p className="text-sm text-gray-700">
-                    Assigned Driver:{" "}
-                    {vehicle.assignedDriver?.profile?.name ||
-                      vehicle.assignedDriver?.username ||
-                      vehicle.assignedDriver?.email ||
-                      "N/A"}
-                  </p>
+                  
                   <p className="text-sm text-gray-700">
                     Location: {vehicle.location || "N/A"}
                   </p>
@@ -178,12 +172,7 @@ function ViewVehicle() {
                     >
                       Edit
                     </Button>
-                    <Button
-                      variant="primary"
-                      onClick={() => navigate(`/assign-driver/${vehicle._id}`)}
-                    >
-                      Assign Driver
-                    </Button>
+                    
                     {currentUser.role === "admin" && (
                       <Button
                         variant="danger"

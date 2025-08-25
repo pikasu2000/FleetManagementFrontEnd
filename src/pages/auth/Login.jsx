@@ -1,39 +1,57 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { API_BASE_URL, LoginPageImage } from "../../config";
+import { LoginPageImage } from "../../config";
 import { FcGoogle } from "react-icons/fc";
-import { FaGithub } from "react-icons/fa";
-
+import { FaGithub, FaUser, FaLock } from "react-icons/fa";
+import { useDispatch } from "react-redux";
+import { loginUser } from "../../context/userSlice";
+import toast from "react-hot-toast";
+import socket from "../../utils/socket";
 function Login() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-  async function handleLogin(e) {
-    e.preventDefault();
-    // Handle login logic here
-    const user = { username, password };
-    let data = await fetch(`${API_BASE_URL}/users/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(user),
-    });
-    let res = await data.json();
-    console.log("User logged in:", res);
-    if (res.success) {
-      localStorage.setItem("user", JSON.stringify(res.user));
-      localStorage.setItem("token", res.token);
 
-      navigate("/");
-    } else {
-      alert(res.message || "Login failed");
+  const [formData, setFormData] = useState({
+    identifier: "",
+    password: "",
+  });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    if (!formData.identifier || !formData.password) {
+      toast.error("Please fill all required fields!");
+      return;
     }
-  }
+
+    try {
+      const payload = {
+        identifier: formData.identifier,
+        password: formData.password,
+      };
+
+      const res = await dispatch(loginUser(payload)).unwrap();
+      if (res.success) {
+        toast.success("Login successful!");
+        socket.connect();
+        socket.emit("registerUser", res.user._id);
+        navigate("/");
+      } else {
+        toast.error(res.message || "Login failed");
+      }
+    } catch (error) {
+      console.error("Error logging in:", error);
+      toast.error(error || "Failed to login");
+    }
+  };
+
   return (
-    <div className="bg-[#ffe6c9] min-h-screen flex items-center justify-center p-3">
-      <div className="bg-white max-w-4xl w-full rounded-2xl shadow-lg flex flex-col md:flex-row overflow-hidden">
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4">
+      <div className="bg-white/10 backdrop-blur-xl max-w-4xl w-full h-[90vh] rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden border border-white/20">
         {/* Left Side Image */}
         <div className="hidden md:flex flex-1">
           <img
@@ -44,87 +62,82 @@ function Login() {
         </div>
 
         {/* Right Side Form */}
-        <div className="flex flex-col justify-center flex-1 px-6 md:px-8 py-6 space-y-4">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Login to Your Account
-          </h1>
-          <p className="text-gray-600 text-sm">
-            See what's going on in your business
+        <div className="flex flex-col justify-center flex-1 px-6 py-6 text-white space-y-5 overflow-y-auto">
+          <h1 className="text-3xl font-extrabold">Welcome Back 👋</h1>
+          <p className="text-white/80 text-sm">
+            Login to continue exploring your dashboard
           </p>
 
           {/* Social Login */}
           <div className="flex flex-col space-y-2">
-            <button className="flex items-center justify-center gap-2 border border-gray-300 py-2 px-3 rounded-md hover:bg-gray-100 transition text-sm">
+            <button className="flex items-center justify-center gap-3 border border-white/30 py-2 px-4 rounded-xl hover:bg-white/20 transition-all duration-300 text-sm font-medium backdrop-blur-lg">
               <FcGoogle size={20} /> Login with Google
             </button>
-            <button className="flex items-center justify-center gap-2 bg-[#333] text-white py-2 px-3 rounded-md hover:bg-black transition text-sm">
+            <button className="flex items-center justify-center gap-3 bg-gray-900 text-white py-2 px-4 rounded-xl hover:bg-gray-800 transition-all duration-300 text-sm font-medium">
               <FaGithub size={20} /> Login with GitHub
             </button>
           </div>
 
           {/* Divider */}
-          <div className="flex items-center gap-2">
-            <div className="h-px bg-gray-300 flex-1"></div>
-            <span className="text-xs text-gray-500">or</span>
-            <div className="h-px bg-gray-300 flex-1"></div>
+          <div className="flex items-center gap-3">
+            <div className="h-px bg-white/30 flex-1"></div>
+            <span className="text-sm text-white/60">or</span>
+            <div className="h-px bg-white/30 flex-1"></div>
           </div>
 
-          {/* Email & Password Form */}
+          {/* Login Form */}
           <form className="space-y-4" onSubmit={handleLogin}>
-            <div>
-              <label
-                htmlFor="username"
-                className="block text-xs font-medium text-gray-700"
-              >
-                Username
-              </label>
+            <div className="relative">
+              <FaUser className="absolute top-3 left-3 text-white/60" />
               <input
                 type="text"
-                id="username"
+                id="identifier"
+                name="identifier"
+                value={formData.identifier}
+                onChange={handleChange}
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/30 focus:ring-2 focus:ring-pink-400 focus:outline-none transition-all"
+                placeholder="Email or Username"
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-[#631e4d] focus:outline-none"
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-xs font-medium text-gray-700"
-              >
-                Password
-              </label>
+            <div className="relative">
+              <FaLock className="absolute top-3 left-3 text-white/60" />
               <input
                 type="password"
                 id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/30 focus:ring-2 focus:ring-pink-400 focus:outline-none transition-all"
+                placeholder="Password"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-[#631e4d] focus:outline-none"
               />
             </div>
 
             <div className="flex justify-end">
-              <a href="#" className="text-xs text-[#631e4d] hover:underline">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-pink-300 hover:underline"
+              >
                 Forgot Password?
-              </a>
+              </Link>
             </div>
 
             <button
               type="submit"
-              className="w-full bg-[#631e4d] text-white py-2.5 rounded-md hover:bg-[#631e4de6] transition text-sm"
+              className="w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 py-2.5 rounded-xl font-medium text-white shadow-lg hover:opacity-90 transition-all duration-300"
             >
               Login
             </button>
           </form>
 
           {/* Sign up link */}
-          <p className="text-center text-xs text-gray-600">
-            Don't have an account?{" "}
+          <p className="text-center text-sm text-white/70">
+            Don’t have an account?{" "}
             <Link
               to="/register"
-              className="text-[#631e4d] font-medium hover:underline"
+              className="text-pink-300 font-semibold hover:underline"
             >
               Sign up
             </Link>

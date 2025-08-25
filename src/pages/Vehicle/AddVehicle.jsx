@@ -19,7 +19,7 @@ function AddVehicle() {
     licensePlate: "",
     mileage: "",
     status: "active",
-    assignedDriver: "",
+
     location: "",
   });
 
@@ -50,7 +50,7 @@ function AddVehicle() {
         licensePlate: "",
         mileage: "",
         status: "active",
-        assignedDriver: "",
+
         location: "",
       });
     } catch (err) {
@@ -120,31 +120,6 @@ function AddVehicle() {
                 required
               />
             </div>
-
-            <div>
-              <label className="block mb-2 font-medium text-gray-700">
-                Assigned Driver
-              </label>
-              <select
-                name="assignedDriver"
-                value={formData.assignedDriver}
-                onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select driver</option>
-                {users
-                  .filter((u) => u.role === "driver")
-                  .map((user, idx) => (
-                    <option key={user._id || idx} value={user._id || ""}>
-                      {user.profile?.name || user.username || "Unknown"}
-                    </option>
-                  ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Row 3: Mileage, Location & Status */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Mileage */}
             <div>
               <label className="block mb-2 font-medium text-gray-700">
@@ -160,7 +135,10 @@ function AddVehicle() {
                 min="0"
               />
             </div>
+          </div>
 
+          {/* Row 3: Mileage, Location & Status */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Location */}
             <div>
               <label className="block mb-2 font-medium text-gray-700">

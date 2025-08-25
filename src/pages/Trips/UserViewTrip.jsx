@@ -4,32 +4,29 @@ import AdminLayouts from "../../layout/AdminLayouts";
 import toast from "react-hot-toast";
 import Button from "../../components/ui/Buttons/Button";
 import DeleteCard from "../../components/ui/Cards/DeleteCard";
-import { fetchAllTrips, updateTrip, deleteTrip } from "../../context/tripSlice";
+import { fetchUserTrips, updateTrip } from "../../context/tripSlice";
 import socket from "../../utils/socket";
-import { fetchUsers } from "../../context/userSlice";
 
-function ViewTrips() {
+function UserViewTrip() {
   const dispatch = useDispatch();
-  const { trips, loading, error } = useSelector((state) => state.trips);
-  const { users } = useSelector((state) => state.users);
+  const { userTrips, trips, loading, error } = useSelector(
+    (state) => state.trips
+  );
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrip, setSelectedTrip] = useState(null);
-  const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
-  const [assignDriverIds, setAssignDriverIds] = useState({});
+  const [isCancelPopupOpen, setIsCancelPopupOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
-    dispatch(fetchAllTrips());
-    dispatch(fetchUsers());
-
-    socket.connect();
+    dispatch(fetchUserTrips());
+    console.log("User Trips:", userTrips);
     socket.on("tripUpdated", (trip) => {
       dispatch({ type: "trips/socketUpdateTrip", payload: trip });
     });
+
     return () => {
       socket.off("tripUpdated");
-      socket.disconnect();
     };
   }, [dispatch]);
 
@@ -39,30 +36,25 @@ function ViewTrips() {
     }
   }, [error]);
 
-  const handleAssignDriver = async (tripId) => {
-    const driverId = assignDriverIds[tripId];
-    if (!driverId) return toast.error("Select a driver");
+  const confirmCancel = async () => {
     try {
-      await dispatch(updateTrip({ tripId, driverId })).unwrap();
-      toast.success("Driver assigned successfully");
-      setAssignDriverIds({ ...assignDriverIds, [tripId]: "" });
-    } catch (err) {
-      toast.error(err?.message || "Failed to assign driver");
-    }
-  };
+      await dispatch(
+        updateTrip({
+          tripId: selectedTrip?._id,
 
-  const confirmDelete = async () => {
-    try {
-      await dispatch(deleteTrip(selectedTrip._id)).unwrap();
-      toast.success("Trip deleted successfully");
-      setIsDeletePopupOpen(false);
+          updates: { status: "canceled" },
+        })
+      ).unwrap();
+
+      toast.success("Trip canceled successfully");
+      setIsCancelPopupOpen(false);
       setSelectedTrip(null);
     } catch (err) {
-      toast.error(err?.message || "Failed to delete trip");
+      toast.error(err?.message || "Failed to cancel trip");
     }
   };
 
-  const filteredTrips = trips.filter((t) => {
+  const filteredTrips = userTrips.filter((t) => {
     return (
       !searchQuery ||
       t.vehicleId?.make?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -82,7 +74,7 @@ function ViewTrips() {
     <AdminLayouts>
       <div className="p-6 bg-gray-100 min-h-screen">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Trips List</h1>
+          <h1 className="text-3xl font-bold text-gray-800">My Trips</h1>
         </div>
 
         {/* Search */}
@@ -120,23 +112,19 @@ function ViewTrips() {
             <TripCard
               key={trip._id}
               trip={trip}
-              users={users || []}
-              assignDriverIds={assignDriverIds}
-              setAssignDriverIds={setAssignDriverIds}
-              handleAssignDriver={handleAssignDriver}
               setSelectedTrip={setSelectedTrip}
-              setIsDeletePopupOpen={setIsDeletePopupOpen}
+              setIsCancelPopupOpen={setIsCancelPopupOpen}
             />
           ))
         )}
 
-        {/* Delete Popup */}
-        {isDeletePopupOpen && selectedTrip && (
+        {/* Cancel Popup */}
+        {isCancelPopupOpen && selectedTrip && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <DeleteCard
               vehicle={selectedTrip}
-              onCancel={() => setIsDeletePopupOpen(false)}
-              onConfirm={confirmDelete}
+              onCancel={() => setIsCancelPopupOpen(false)}
+              onConfirm={confirmCancel}
             />
           </div>
         )}
@@ -145,15 +133,7 @@ function ViewTrips() {
   );
 }
 
-const TripCard = ({
-  trip,
-  users,
-  assignDriverIds,
-  setAssignDriverIds,
-  handleAssignDriver,
-  setSelectedTrip,
-  setIsDeletePopupOpen,
-}) => (
+const TripCard = ({ trip, setSelectedTrip, setIsCancelPopupOpen }) => (
   <div className="flex flex-col md:flex-row mt-4 justify-between items-start md:items-center p-4 bg-white shadow-lg rounded-lg hover:shadow-xl transition-all duration-200">
     <div className="flex flex-col">
       <p className="font-semibold text-lg text-gray-800">
@@ -179,47 +159,17 @@ const TripCard = ({
     </div>
 
     <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0">
-      {trip.status === "pending" && (
-        <div className="flex gap-2">
-          <select
-            value={assignDriverIds[trip._id] || ""}
-            onChange={(e) =>
-              setAssignDriverIds({
-                ...assignDriverIds,
-                [trip._id]: e.target.value,
-              })
-            }
-            className="px-3 py-2 border rounded-lg"
-          >
-            <option value="">Select Driver</option>
-            {users
-              .filter((u) => u.role === "driver")
-              .map((u) => (
-                <option key={u._id} value={u._id}>
-                  {u.profile?.name || u.username}
-                </option>
-              ))}
-          </select>
-          <Button
-            onClick={() => handleAssignDriver(trip._id)}
-            variant="primary"
-          >
-            Assign
-          </Button>
-        </div>
-      )}
-
       <Button
         onClick={() => {
           setSelectedTrip(trip);
-          setIsDeletePopupOpen(true);
+          setIsCancelPopupOpen(true);
         }}
         variant="danger"
       >
-        Delete
+        Cancel trip
       </Button>
     </div>
   </div>
 );
 
-export default ViewTrips;
+export default UserViewTrip;

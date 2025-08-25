@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchVehicles, assignDriver } from "../../context/vehicleSlice";
+import { fetchVehicles,  } from "../../context/vehicleSlice";
 import { fetchUsers } from "../../context/userSlice";
 import Button from "../../components/ui/Buttons/Button";
 import toast from "react-hot-toast";
@@ -46,7 +46,7 @@ function AssignDriver() {
     }
 
     try {
-      await dispatch(assignDriver({ vehicleId: id, driverId })).unwrap();
+      // await dispatch(assignDriver({ vehicleId: id, driverId })).unwrap();
       toast.success("Driver assigned successfully");
       navigate("/view-vehicles");
     } catch (err) {

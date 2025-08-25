@@ -28,9 +28,11 @@ export const fetchVehicles = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
+      
       const res = await axios.get(`${API_BASE_URL}/vehicles`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log("Fetched Vehicles:", res.data.vehicles);
       return res.data.vehicles;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -50,24 +52,6 @@ export const fetchVehiclesById = createAsyncThunk(
       return res.data.vehicle;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
-    }
-  }
-);
-export const assignDriver = createAsyncThunk(
-  "vehicles/assignDriver",
-  async ({ vehicleId, driverId }, { rejectWithValue }) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.put(
-        `${API_BASE_URL}/vehicles/assign-driver/${vehicleId}`,
-        { driverId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return response.data.vehicle;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to assign driver"
-      );
     }
   }
 );
@@ -138,31 +122,6 @@ const vehicleSlice = createSlice({
         state.vehicles.push(action.payload);
       })
       .addCase(createVehicle.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
-
-    // --- Assign Driver ---
-    builder
-      .addCase(assignDriver.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(assignDriver.fulfilled, (state, action) => {
-        state.loading = false;
-        const updatedVehicle = action.payload;
-
-        // Update in vehicles array
-        state.vehicles = state.vehicles.map((v) =>
-          v._id === updatedVehicle._id ? updatedVehicle : v
-        );
-
-        // Update selectedVehicle if it matches
-        if (state.selectedVehicle?._id === updatedVehicle._id) {
-          state.selectedVehicle = updatedVehicle;
-        }
-      })
-      .addCase(assignDriver.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
