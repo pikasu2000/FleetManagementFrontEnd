@@ -63,7 +63,14 @@ function UserViewTrip() {
     );
   });
 
-  const statusTabs = ["all", "requested", "assigned", "ongoing", "completed"];
+  const statusTabs = [
+    "all",
+    "requested",
+    "assigned",
+    "ongoing",
+    "completed",
+    "canceled",
+  ];
 
   const tripsToShow =
     activeTab === "all"
@@ -95,9 +102,9 @@ function UserViewTrip() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               variant={activeTab === tab ? "primary" : "secondary"}
-              className="capitalize"
+              
             >
-              {tab}
+               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </Button>
           ))}
         </div>
@@ -133,43 +140,74 @@ function UserViewTrip() {
   );
 }
 
-const TripCard = ({ trip, setSelectedTrip, setIsCancelPopupOpen }) => (
-  <div className="flex flex-col md:flex-row mt-4 justify-between items-start md:items-center p-4 bg-white shadow-lg rounded-lg hover:shadow-xl transition-all duration-200">
-    <div className="flex flex-col">
-      <p className="font-semibold text-lg text-gray-800">
-        {trip.vehicleId?.make} {trip.vehicleId?.model}
-      </p>
-      <p className="text-gray-500 text-sm">
-        License: {trip.vehicleId?.licensePlate || "N/A"}
-      </p>
-      <p className="text-sm text-gray-700">
-        Status: <span className="font-medium">{trip.status}</span>
-      </p>
-      <p className="text-sm text-gray-700">
-        Start:{" "}
-        {trip.startTime ? new Date(trip.startTime).toLocaleString() : "N/A"}
-      </p>
-      <p className="text-sm text-gray-700">
-        End: {trip.endTime ? new Date(trip.endTime).toLocaleString() : "N/A"}
-      </p>
-      <p className="text-sm text-gray-700">
-        Driver:{" "}
-        {trip.driverId?.profile?.name || trip.driverId?.username || "N/A"}
-      </p>
-    </div>
+const TripCard = ({ trip, setSelectedTrip, setIsCancelPopupOpen }) => {
+  // Add conditional styles based on trip status
+  const statusColors = {
+    canceled: "bg-red-100 border-l-4 border-red-500",
+    completed: "bg-green-100 border-l-4 border-green-500",
+    ongoing: "bg-blue-100 border-l-4 border-blue-500",
+    requested: "bg-yellow-100 border-l-4 border-yellow-500",
+    assigned: "bg-purple-100 border-l-4 border-purple-500",
+    pending: "bg-white border border-gray-200",
+  };
 
-    <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0">
-      <Button
-        onClick={() => {
-          setSelectedTrip(trip);
-          setIsCancelPopupOpen(true);
-        }}
-        variant="danger"
-      >
-        Cancel trip
-      </Button>
+  return (
+    <div
+      className={`flex flex-col md:flex-row mt-4 justify-between items-start md:items-center p-4 shadow-lg rounded-lg hover:shadow-xl transition-all duration-200 ${
+        statusColors[trip.status] || "bg-white"
+      }`}
+    >
+      <div className="flex flex-col">
+        <p className="font-semibold text-lg text-gray-800">
+          {trip.vehicleId?.make} {trip.vehicleId?.model}
+        </p>
+        <p className="text-gray-500 text-sm">
+          License: {trip.vehicleId?.licensePlate || "N/A"}
+        </p>
+        <p className="text-sm text-gray-700">
+          Status:{" "}
+          <span
+            className={`font-medium ${
+              trip.status === "canceled"
+                ? "text-red-600"
+                : trip.status === "completed"
+                ? "text-green-600"
+                : trip.status === "ongoing"
+                ? "text-blue-600"
+                : "text-gray-700"
+            }`}
+          >
+            {trip.status}
+          </span>
+        </p>
+        <p className="text-sm text-gray-700">
+          Start:{" "}
+          {trip.startTime ? new Date(trip.startTime).toLocaleString() : "N/A"}
+        </p>
+        <p className="text-sm text-gray-700">
+          End: {trip.endTime ? new Date(trip.endTime).toLocaleString() : "N/A"}
+        </p>
+        <p className="text-sm text-gray-700">
+          Driver:{" "}
+          {trip.driverId?.profile?.name || trip.driverId?.username || "N/A"}
+        </p>
+      </div>
+
+      {trip.status === "pending" && (
+        <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0">
+          <Button
+            onClick={() => {
+              setSelectedTrip(trip);
+              setIsCancelPopupOpen(true);
+            }}
+            variant="danger"
+          >
+            Cancel trip
+          </Button>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 export default UserViewTrip;

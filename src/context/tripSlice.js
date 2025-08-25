@@ -68,16 +68,21 @@ export const createTrip = createAsyncThunk(
 // Update trip (assign driver / respond)
 export const updateTrip = createAsyncThunk(
   "trips/updateTrip",
-  async ({ tripId, updates }, { rejectWithValue }) => {
+  async ({ tripId, driverId, action, updates }, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await axios.post(
+      let body = {};
+      if (driverId) body.driverId = driverId; // Assign driver
+      if (action) body.action = action; // Driver accept/reject
+      if (updates) body.updates = updates; // Admin/User updates
+
+      const res = await axios.put(
         `${API_BASE_URL}/trips/update/${tripId}`,
-        { updates },
+        body,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log(res.data.trip);
+
       return res.data.trip;
     } catch (err) {
       return rejectWithValue(err.response?.data);
